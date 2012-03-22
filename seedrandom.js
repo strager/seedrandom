@@ -1,6 +1,9 @@
 // seedrandom.js version 2.0.
 // Author: David Bau 4/2/2011
 //
+// Put on Github by Matt Glazar;
+// https://github.com/strager/seedrandom
+//
 // Defines a method Math.seedrandom() that, when called, substitutes
 // an explicitly seeded RC4-based algorithm for Math.random().  Also
 // supports automatic seeding from local or network sources of entropy.
