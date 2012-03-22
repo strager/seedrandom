@@ -101,7 +101,33 @@
  * @param {number=} overflow 
  * @param {number=} startdenom
  */
-(function (pool, exports, math, width, chunks, significance, overflow, startdenom) {
+(function (factory) {
+  function call_factory(exports) {
+    factory(
+      [],      // pool: entropy pool starts empty
+      exports, // exports: package on which to export properties
+      Math,    // math: package containing random, pow
+      256,     // width: each RC4 output is 0 <= x < 256
+      6,       // chunks: at least six RC4 outputs for each double
+      52       // significance: there are 52 significant digits in a double
+    );
+  }
+
+  if(typeof exports !== 'undefined') {
+    // Node.js
+    call_factory(exports);
+  } else if(typeof define === 'function') {
+    // AMD
+    define([], function() {
+      var ret = {};
+      call_factory(ret);
+      return ret;
+    });
+  } else {
+    // Browser
+    call_factory(Math);
+  }
+}(function (pool, exports, math, width, chunks, significance, overflow, startdenom) {
 
 
 //
@@ -277,14 +303,9 @@ overflow = significance * 2;
 // seedrandom will not call math.random on its own again after
 // initialization.
 //
-mixkey(math.random(), pool);
+var builtinRandom = math.random;
+mixkey(builtinRandom(), pool);
 
-// End anonymous scope, and pass initial values.
-})(
-  [],   // pool: entropy pool starts empty
-  Math, // exports: package on which to export properties
-  Math, // math: package containing random, pow
-  256,  // width: each RC4 output is 0 <= x < 256
-  6,    // chunks: at least six RC4 outputs for each double
-  52    // significance: there are 52 significant digits in a double
-);
+exports['random'] = builtinRandom;
+
+}));
