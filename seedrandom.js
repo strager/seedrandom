@@ -101,21 +101,21 @@
  * @param {number=} overflow 
  * @param {number=} startdenom
  */
-(function (pool, math, width, chunks, significance, overflow, startdenom) {
+(function (pool, exports, math, width, chunks, significance, overflow, startdenom) {
 
 
 //
-// seedrandom()
-// This is the seedrandom function described above.
+// create_rng()
+// Creates an mutable random number generator.
 //
-math['seedrandom'] = function seedrandom(seed, use_entropy) {
+function create_rng(seed, use_entropy) {
   var key = [];
   var arc4;
 
   // Flatten the seed string or build one from local entropy if needed.
   seed = mixkey(flatten(
     use_entropy ? [seed, pool] :
-    arguments.length ? seed :
+    typeof seed !== 'undefined' ? seed :
     [new Date().getTime(), pool, window], 3), key);
 
   // Use the seed to initialize an ARC4 generator.
@@ -124,12 +124,10 @@ math['seedrandom'] = function seedrandom(seed, use_entropy) {
   // Mix the randomness into accumulated entropy.
   mixkey(arc4.S, pool);
 
-  // Override Math.random
-
   // This function returns a random double in [0, 1) that contains
   // randomness in every bit of the mantissa of the IEEE 754 value.
 
-  math['random'] = function random() {  // Closure to return a random double:
+  function random() {                   // Closure to return a random double:
     var n = arc4.g(chunks);             // Start with a numerator n < 2 ^ 48
     var d = startdenom;                 //   and denominator d = 2 ^ 48.
     var x = 0;                          //   and no 'extra last byte'.
@@ -144,10 +142,26 @@ math['seedrandom'] = function seedrandom(seed, use_entropy) {
       x >>>= 1;                         //   we have exactly the desired bits.
     }
     return (n + x) / d;                 // Form the number within [0, 1).
-  };
+  }
 
-  // Return the seed that was used
-  return seed;
+  return {
+    'seed': seed,
+    'random': random
+  };
+}
+
+exports['create_rng'] = create_rng;
+
+//
+// seedrandom()
+// This is the seedrandom function described above.
+//
+exports['seedrandom'] = function seedrandom(seed, use_entropy) {
+  var rng = create_rng(seed, use_entropy);
+
+  exports['random'] = rng['random'];
+
+  return rng['seed'];
 };
 
 //
@@ -268,7 +282,8 @@ mixkey(math.random(), pool);
 // End anonymous scope, and pass initial values.
 })(
   [],   // pool: entropy pool starts empty
-  Math, // math: package containing random, pow, and seedrandom
+  Math, // exports: package on which to export properties
+  Math, // math: package containing random, pow
   256,  // width: each RC4 output is 0 <= x < 256
   6,    // chunks: at least six RC4 outputs for each double
   52    // significance: there are 52 significant digits in a double
